@@ -93,3 +93,5 @@ See [test_cases.md](./test_cases.md) for a detailed breakdown of:
 - Reference to official Yuno docs used:
   - Create Payment: https://docs.y.uno/reference/create-payment
   - Refund: https://docs.y.uno/reference/refund-payment
+  - Purchase: https://docs.y.uno/reference/create-payment
+  - Capture: https://docs.y.uno/reference/capture-authorization
