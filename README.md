@@ -7,6 +7,7 @@ This repository contains the test automation framework for Yuno payment integrat
 - **Framework**: Behave (Gherkin BDD)
 - **HTTP Client**: Requests
 - **Data Generation**: Faker
+- **Author**: [SahanaGowda2](https://github.com/SahanaGowda2)
 
 ## Folder Structure
 ```
@@ -17,6 +18,7 @@ This repository contains the test automation framework for Yuno payment integrat
 │   ├── authorization.feature  # Auth scenarios
 │   ├── cancel.feature         # Cancel/Void scenarios
 │   ├── capture_and_verify.feature # Capture & Verify scenarios
+│   ├── customer.feature       # Customer & Enrollment scenarios
 │   ├── environment.py         # Behave hooks
 │   ├── steps/
 │   │   └── api_steps.py       # Step definitions
