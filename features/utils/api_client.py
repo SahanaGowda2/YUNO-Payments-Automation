@@ -4,6 +4,14 @@ import json
 from config import Config
 
 class APIClient:
+    
+    URI_PAYMENTS = "/payments"
+    URI_CUSTOMERS = "/customers"
+    URI_REFUND = "/payments/{id}/transactions/{transaction_id}/refund"
+    URI_CAPTURE = "/payments/{payment_id}/transactions/{transaction_id}/capture"
+    URI_CANCEL = "/payments/{payment_id}/transactions/{transaction_id}/cancel"
+    URI_ENROLLMENT = "/customers/{customer_id}/payment-methods"
+
     def __init__(self):
         self.base_url = Config.BASE_URL
         self.session = requests.Session()
@@ -36,7 +44,7 @@ class APIClient:
         # Simulated Logic for Testing -----------------------------------------
         
         # 1. Purchase / Auth (POST /payments)
-        if endpoint == "/payments":
+        if endpoint == self.URI_PAYMENTS:
             if payload.get("verify") is True:
                  response.json.return_value["status"] = "VALID"
             elif payload.get("capture") is False:
@@ -46,33 +54,33 @@ class APIClient:
                  response.status_code = 400
                  response.json.return_value = {"code": "INVALID_CARD", "message": "Card invalid"}
 
-        # 2. Capture (POST /payments/{id}/capture)
+        # 2. Capture (POST .../capture)
         elif "/capture" in endpoint:
             response.json.return_value["status"] = "CAPTURED"
             
-        # 3. Cancel (POST /payments/{id}/cancellation)
-        elif "/cancellation" in endpoint or "/cancel" in endpoint:
-            response.status_code = 200 # Yuno often returns 200 for cancellation request acceptance
+        # 3. Cancel (POST .../cancel)
+        elif "/cancel" in endpoint:
+            response.status_code = 200 
             response.json.return_value["status"] = "CANCELLED"
             if "non-existent" in endpoint:
                 response.status_code = 404
 
-        # 4. Refund (POST /payments/{id}/refunds)
-        elif "/refunds" in endpoint or "/refund" in endpoint:
+        # 4. Refund (POST .../refund)
+        elif "/refund" in endpoint:
             response.json.return_value["status"] = "REFUNDED"
-            if "refunded-tx-id" in endpoint: # Simulate double refund
+            if "refunded-tx-id" in endpoint or "tx-already-REFUNDED" in endpoint: # Simulate double refund
                 response.status_code = 409
                 response.json.return_value = {"message": "Transaction already refunded"}
 
-        # 6. Enrollment (POST /customers/{id}/enrollment)
-        elif "enroll" in endpoint:
+        # 6. Enrollment (POST /customers/{id}/payment-methods)
+        elif "/payment-methods" in endpoint:
              response.json.return_value = {
                  "payment_method_id": str(uuid.uuid4()),
                  "status": "ENROLLED"
              }
 
         # 5. Create Customer (POST /customers)
-        elif "/customers" in endpoint:
+        elif endpoint == self.URI_CUSTOMERS:
              response.json.return_value = {
                  "id": str(uuid.uuid4()),
                  "status": "CREATED"

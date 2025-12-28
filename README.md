@@ -60,7 +60,7 @@ This repository contains the test automation framework for Yuno payment integrat
    ```
 
 4. **Configuration**:
-   - The project is configured to hit `https://api.y.uno/v1` by default.
+   - The project is configured to hit `https://api-sandbox.y.uno/v1` by default.
    - For this demonstration, the `APIClient` in `features/utils/api_client.py` mocks the responses to simulate successful Yuno API interactions without needing real credentials.
    - To use real credentials, update `config.py` or set environment variables:
      - `PUBLIC_API_KEY`

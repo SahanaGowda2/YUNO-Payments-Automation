@@ -84,23 +84,19 @@ def step_impl(context):
 @given('I have a successful "{transaction_type}" transaction id')
 def step_impl(context, transaction_type):
     # In a real test, we might actually perform the setup transaction here
-    # For now, we generate a mock ID or rely on the mock client to handle it
-    context.transaction_id = str(uuid.uuid4())
-    # In a real test, we might actually perform the setup transaction here
-    # For now, we generate a mock ID or rely on the mock client to handle it
-    context.transaction_id = str(uuid.uuid4())
+    # For now, we generate a mock ID and rely on the mock client to handle it
+    new_id = str(uuid.uuid4())
     context.last_transaction_type = transaction_type
     
     if transaction_type == "CUSTOMER":
-        # Simulate creating a customer so we have an ID for enrollment
-        # effectively doing nothing but setting the ID, but semantically clear
-        pass
+        context.customer_id = new_id
+    else:
+        context.transaction_id = new_id
 
 @given('I have a transaction id that is already "{status}"')
 def step_impl(context, status):
-    context.transaction_id = str(uuid.uuid4())
-    # The mock client needs to know to fail this
-    context.transaction_id = "refunded-tx-id" 
+    # The mock client can be configured to recognize this pattern
+    context.transaction_id = f"tx-already-{status}"
 
 @given('I have a non-existent transaction id')
 def step_impl(context):
@@ -108,42 +104,50 @@ def step_impl(context):
 
 @when('I send a POST request to "{endpoint_param}"')
 def step_impl(context, endpoint_param):
-    # If endpoint_param is a generic name like "/payments/purchase", map it to official API
-    endpoint = endpoint_param
-    if endpoint_param == "/payments/purchase":
-        endpoint = "/payments"
-    elif endpoint_param == "/payments/authorization":
-        endpoint = "/payments"
-        # Ensure payload has capture=False for Auth if not already set
-        if context.payload.get("capture") is None:
-             context.payload["capture"] = False
+    # Map friendly Gherkin endpoints to actual API endpoints and set required payload fields
+    endpoint_mappings = {
+        "/payments/purchase": context.api.URI_PAYMENTS,
+        "/payments/authorization": context.api.URI_PAYMENTS,
+        "/payments/verify": context.api.URI_PAYMENTS,
+        "/customers": context.api.URI_CUSTOMERS
+    }
+    endpoint = endpoint_mappings.get(endpoint_param, endpoint_param)
+
+    # Set specific payload properties based on the operation
+    if endpoint_param == "/payments/authorization" and context.payload.get("capture") is None:
+        context.payload["capture"] = False
     elif endpoint_param == "/payments/verify":
-        endpoint = "/payments"
         context.payload["verify"] = True
 
     context.response = context.api.post(endpoint, context.payload)
 
 @when('I send a POST request to "{action_type}" with the transaction id')
 def step_impl(context, action_type):
-    # Construct paths like /payments/{id}/refunds
-    tx_id = context.transaction_id
-    
-    if "refund" in action_type:
-        endpoint = f"/payments/{tx_id}/refunds"
-        payload = {} # Refund amount often optional for full refund
-    elif "cancel" in action_type:
-        endpoint = f"/payments/{tx_id}/cancellation"
-        payload = {}
-    elif "capture" in action_type:
-        endpoint = f"/payments/{tx_id}/capture"
-        payload = {"amount": 1000} # Capture usually needs amount
-    elif "capture" in action_type:
-        endpoint = f"/payments/{tx_id}/capture"
-        payload = {"amount": 1000} # Capture usually needs amount
-    elif "enrollment" in action_type or "enroll" in action_type or "ENROLL" in action_type:
-        # Assuming endpoint pattern /customers/{id}/enrollment based on context
-        endpoint = f"/customers/{tx_id}/enrollment"
+    payload = {}
+
+    # Normalize action_type for robust matching
+    normalized_action = action_type.lower()
+
+    if "enroll" in normalized_action:
+        # Enrollment requires a Customer ID, not a Transaction ID
+        c_id = getattr(context, 'customer_id', getattr(context, 'transaction_id', None))
+        endpoint = context.api.URI_ENROLLMENT.format(customer_id=c_id)
         payload = context.payload
+        context.response = context.api.post(endpoint, payload)
+        return
+
+    # For transaction-based actions (Refund, Cancel, Capture)
+    tx_id = context.transaction_id
+    # Using the same ID for payment_id and transaction_id for simulation purposes
+    sub_tx_id = tx_id
+
+    if "refund" in normalized_action:
+        endpoint = context.api.URI_REFUND.format(id=tx_id, transaction_id=sub_tx_id)
+    elif "cancel" in normalized_action:
+        endpoint = context.api.URI_CANCEL.format(payment_id=tx_id, transaction_id=sub_tx_id)
+    elif "capture" in normalized_action:
+        endpoint = context.api.URI_CAPTURE.format(payment_id=tx_id, transaction_id=sub_tx_id)
+        payload = {"amount": 1000} # Capture usually needs amount
     else:
         raise ValueError(f"Unknown action type: {action_type}")
 
