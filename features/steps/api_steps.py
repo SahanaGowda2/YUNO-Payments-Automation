@@ -104,7 +104,7 @@ def step_impl(context):
 
 @when('I send a POST request to "{endpoint_param}"')
 def step_impl(context, endpoint_param):
-    # Map friendly Gherkin endpoints to actual API endpoints and set required payload fields
+    
     endpoint_mappings = {
         "/payments/purchase": context.api.URI_PAYMENTS,
         "/payments/authorization": context.api.URI_PAYMENTS,
